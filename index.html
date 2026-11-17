@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>SMK Lundu Annual Dinner – Registration</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+:root{--pink:#ff2bd6;--cyan:#27f3ff;--yellow:#fff200;--dark:#0b0221;--green:#39ff14;--red:#ff1a5c}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:var(--dark);color:#fff;font-family:'Press Start 2P',ui-monospace,Menlo,Consolas,monospace}
+
+/* ---------- background ---------- */
+.bg{position:fixed;inset:0;z-index:0;overflow:hidden;
+  background:linear-gradient(#0b0221 0%,#2b0a52 45%,#7a1b8f 62%,#ff2bd6 64%,#0b0221 64.5%)}
+.sun{position:absolute;left:50%;top:18%;width:min(70vw,50vh);aspect-ratio:1;transform:translateX(-50%);border-radius:50%;
+  background:linear-gradient(#fff200,#ff7a18 45%,#ff2bd6);box-shadow:0 0 80px #ff2bd699;opacity:.4;
+  -webkit-mask:repeating-linear-gradient(#000 0 8%,transparent 8% 10%);mask:repeating-linear-gradient(#000 0 8%,transparent 8% 10%)}
+.floor{position:absolute;left:-50%;width:200%;top:64%;bottom:-20%;transform:perspective(380px) rotateX(62deg);transform-origin:top;
+  background:repeating-linear-gradient(90deg,var(--cyan) 0 2px,transparent 2px 70px),repeating-linear-gradient(0deg,var(--cyan) 0 2px,transparent 2px 70px);
+  opacity:.35;animation:grid 1.2s linear infinite}
+@keyframes grid{to{background-position:0 70px,0 70px}}
+.stars{position:absolute;inset:0 0 40% 0;
+  background-image:radial-gradient(2px 2px at 20px 30px,#fff,transparent),radial-gradient(2px 2px at 140px 90px,#27f3ff,transparent),
+  radial-gradient(1px 1px at 80px 160px,#fff,transparent),radial-gradient(2px 2px at 220px 60px,#ff2bd6,transparent);
+  background-size:260px 200px;animation:tw 3s ease-in-out infinite alternate}
+@keyframes tw{from{opacity:.4}to{opacity:1}}
+.scan{position:fixed;inset:0;z-index:50;pointer-events:none;
+  background:repeating-linear-gradient(transparent 0 2px,rgba(0,0,0,.16) 2px 4px);box-shadow:inset 0 0 120px rgba(0,0,0,.6)}
+
+/* ---------- layout ---------- */
+main{position:relative;z-index:2;max-width:560px;margin:0 auto;padding:22px 16px 48px;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;text-align:center;font-size:clamp(15px,5vw,26px);line-height:1.5;letter-spacing:.04em;
+  text-shadow:0 0 6px #fff,0 0 14px var(--pink),0 0 30px var(--pink),0 0 60px var(--pink)}
+h1 span{color:var(--cyan);text-shadow:0 0 6px #fff,0 0 14px var(--cyan),0 0 30px var(--cyan),0 0 60px var(--cyan)}
+.sub{text-align:center;font-size:11px;line-height:1.7;color:var(--yellow);text-shadow:0 0 10px var(--yellow)}
+
+.card{border:5px solid var(--pink);border-radius:18px;background:rgba(18,3,58,.93);
+  box-shadow:0 0 28px var(--pink),inset 0 0 30px rgba(255,43,214,.25);padding:20px 16px;display:flex;flex-direction:column;gap:14px}
+.card[hidden]{display:none}
+.step{font-size:11px;line-height:1.6;color:var(--cyan);text-shadow:0 0 8px var(--cyan);display:flex;gap:10px;align-items:center}
+.step b{display:inline-flex;flex:0 0 28px;width:28px;height:28px;border-radius:50%;background:var(--pink);color:#fff;align-items:center;justify-content:center;font-size:11px;font-weight:400}
+
+.in{width:100%;background:#05010f;color:var(--green);border:3px solid var(--green);border-radius:10px;
+  font-family:'VT323',monospace;font-size:30px;padding:8px 12px;outline:none;text-shadow:0 0 6px var(--green)}
+.in:focus{box-shadow:0 0 16px var(--green)}
+.in::placeholder{color:#3b7a33;text-shadow:none}
+.hp{position:absolute;left:-9999px;top:auto;width:1px;height:1px;opacity:0}
+
+.pick{display:block;position:relative;width:min(100%,320px);aspect-ratio:1;margin:0 auto;border:4px dashed var(--cyan);border-radius:16px;
+  background:#05010f;cursor:pointer;overflow:hidden;box-shadow:0 0 18px #27f3ff66}
+.pick .ph{position:absolute;inset:0;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;font-size:58px;text-align:center}
+.pick .ph small{font-size:10px;color:var(--cyan);line-height:1.8;padding:0 16px;text-shadow:0 0 8px var(--cyan)}
+.pick img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 25%;display:none}
+.pick .chg{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);font-size:9px;padding:9px;text-align:center;color:var(--yellow);display:none}
+.pick.has{border-style:solid;border-color:var(--yellow);box-shadow:0 0 24px var(--yellow)}
+.pick.has img,.pick.has .chg{display:block}
+.pick.has .ph{display:none}
+
+.tip{margin:0;font-family:'VT323',monospace;font-size:23px;line-height:1.15;color:#cfc6f5;text-align:center}
+.msg{min-height:1.3em;font-family:'VT323',monospace;font-size:25px;line-height:1.1;text-align:center;color:var(--yellow)}
+.msg.bad{color:#ff6b8f}
+
+.btn{font-family:inherit;cursor:pointer;border:0;color:#fff;text-transform:uppercase;letter-spacing:.06em}
+#go{padding:20px 12px;font-size:18px;border-radius:14px;background:linear-gradient(#ff5be8,#c4009e);border:4px solid #fff;
+  box-shadow:0 7px 0 #7a005f,0 0 26px var(--pink),0 0 50px var(--pink);text-shadow:0 0 8px #fff}
+#go:active{transform:translateY(7px);box-shadow:0 0 0 #7a005f,0 0 26px var(--pink)}
+#go:disabled{filter:grayscale(.9) brightness(.6)}
+.alt{padding:16px 10px;font-size:11px;border-radius:12px;border:3px solid #fff;background:#3a1a8a;box-shadow:0 0 16px #6a3fff}
+
+/* success */
+.done{align-items:center;text-align:center}
+.done .ok{font-size:clamp(16px,5vw,24px);color:var(--green);text-shadow:0 0 12px var(--green),0 0 30px var(--green);line-height:1.5}
+.done .frame{width:min(70vw,260px);aspect-ratio:1;border:6px solid var(--yellow);border-radius:16px;overflow:hidden;box-shadow:0 0 0 4px var(--pink),0 0 34px var(--yellow)}
+.done .frame img{width:100%;height:100%;object-fit:cover;object-position:50% 25%;display:block}
+.done .nm{font-family:'VT323',monospace;font-size:44px;line-height:1;color:var(--yellow);text-shadow:0 0 10px var(--yellow);word-break:break-word}
+</style>
+</head>
+<body>
+<div class="bg"><div class="stars"></div><div class="sun"></div><div class="floor"></div></div>
+
+<main>
+  <h1>SMK LUNDU <span>ANNUAL DINNER</span></h1>
+  <div class="sub">★ ATTENDANCE REGISTRATION ★<br>REGISTER TO ENTER THE LUCKY DRAW</div>
+
+  <section class="card" id="formCard">
+    <div class="step"><b>1</b> YOUR NAME</div>
+    <input class="in" id="name" type="text" maxlength="80" placeholder="Full name" autocomplete="name" autocapitalize="words" spellcheck="false">
+    <input class="hp" id="hp" type="text" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+    <div class="step"><b>2</b> YOUR PHOTO</div>
+    <label class="pick" id="pick" for="file">
+      <div class="ph">📷<small>TAP TO TAKE OR CHOOSE A PHOTO</small></div>
+      <img id="prev" alt="Your photo">
+      <div class="chg">TAP TO CHANGE PHOTO</div>
+    </label>
+    <input type="file" id="file" accept="image/*" hidden>
+    <p class="tip">Show your face clearly – if you win, your photo appears on the big screen!</p>
+
+    <div class="msg" id="msg"></div>
+    <button class="btn" id="go">▶ REGISTER</button>
+  </section>
+
+  <section class="card done" id="doneCard" hidden>
+    <div class="ok">✔ YOU ARE REGISTERED!</div>
+    <div class="frame"><img id="doneImg" alt=""></div>
+    <div class="nm" id="doneName"></div>
+    <p class="tip">You are in the Lucky Draw. Good luck! 🍀</p>
+    <button class="btn alt" id="again">REGISTER ANOTHER PERSON</button>
+  </section>
+</main>
+<div class="scan"></div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const API_URL = (window.LUCKY_API_URL || '').trim();
+  let photo = null, previewUrl = '', sending = false;
+
+  const msg = (t, bad) => { const m = $('msg'); m.textContent = t || ''; m.className = 'msg' + (bad ? ' bad' : ''); };
+  if (!API_URL){ msg('NOT SET UP YET – the organiser must add the API link in config.js', true); $('go').disabled = true; }
+
+  const ERR = {
+    NAME_REQUIRED: 'Please type your full name.',
+    BAD_IMAGE: 'That photo could not be used. Please choose another one.',
+    ALREADY_REGISTERED: 'This name is already registered. If you did it earlier, you are all set! If you are a different person with the same name, add your middle initial.',
+    CLOSED: 'Registration is closed.',
+    FULL: 'Registration is full. Please see the organiser.'
+  };
+
+  // shrink the photo (phones take 5–10 MB pictures) and turn it into a JPEG
+  function shrink(file){
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        let w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h){ reject(new Error('size')); return; }
+        const s = Math.min(1, 900 / Math.max(w, h)); w = Math.round(w * s); h = Math.round(h * s);
+        const c = document.createElement('canvas'); c.width = w; c.height = h;
+        const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.drawImage(img, 0, 0, w, h);
+        const out = c.toDataURL('image/jpeg', .85);
+        resolve({ b64: out.split(',')[1], url: out });
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('load')); };
+      img.src = url;
+    });
+  }
+
+  $('file').addEventListener('change', async e => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    msg('Preparing photo...');
+    try {
+      const r = await shrink(f);
+      photo = r.b64; previewUrl = r.url;
+      $('prev').src = r.url; $('pick').classList.add('has'); msg('');
+    } catch(err){
+      photo = null; $('pick').classList.remove('has');
+      msg('Could not read that photo. Please try another one.', true);
+    }
+  });
+
+  $('go').addEventListener('click', async () => {
+    if (sending) return;
+    const name = $('name').value.replace(/\s+/g, ' ').trim();
+    if (name.length < 2){ msg('Please type your full name.', true); $('name').focus(); return; }
+    if (!photo){ msg('Please add your photo.', true); return; }
+
+    sending = true; $('go').disabled = true; $('go').textContent = 'UPLOADING...'; msg('Uploading – please wait, do not close this page...');
+    const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 60000);
+    try {
+      const r = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'register', name: name, image: photo, mime: 'image/jpeg', hp: $('hp').value }),
+        signal: ctl.signal
+      });
+      const j = await r.json();
+      if (j.ok){
+        $('doneImg').src = previewUrl; $('doneName').textContent = name;
+        $('formCard').hidden = true; $('doneCard').hidden = false; window.scrollTo(0, 0); msg('');
+      } else {
+        msg(ERR[j.error] || 'Something went wrong. Please try again.', true);
+      }
+    } catch(e){
+      msg('No connection. Please check your internet and tap REGISTER again.', true);
+    } finally {
+      clearTimeout(to); sending = false; $('go').disabled = !API_URL; $('go').textContent = '▶ REGISTER';
+    }
+  });
+
+  $('again').addEventListener('click', () => {
+    photo = null; previewUrl = ''; $('name').value = ''; $('file').value = ''; $('prev').removeAttribute('src');
+    $('pick').classList.remove('has'); msg('');
+    $('doneCard').hidden = true; $('formCard').hidden = false; window.scrollTo(0, 0);
+  });
+})();
+</script>
+</body>
+</html>
