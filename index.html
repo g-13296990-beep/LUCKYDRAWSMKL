@@ -49,7 +49,7 @@ h1 span{color:var(--cyan);text-shadow:0 0 6px #fff,0 0 14px var(--cyan),0 0 30px
 .in::placeholder{color:#3b7a33;text-shadow:none}
 .hp{position:absolute;left:-9999px;top:auto;width:1px;height:1px;opacity:0}
 
-.pick{display:block;position:relative;width:min(100%,320px);aspect-ratio:1;margin:0 auto;border:4px dashed var(--cyan);border-radius:16px;
+.pick{display:block;position:relative;width:min(100%,270px);aspect-ratio:3/4;margin:0 auto;border:4px dashed var(--cyan);border-radius:16px;
   background:#05010f;cursor:pointer;overflow:hidden;box-shadow:0 0 18px #27f3ff66}
 .pick .ph{position:absolute;inset:0;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;font-size:58px;text-align:center}
 .pick .ph small{font-size:10px;color:var(--cyan);line-height:1.8;padding:0 16px;text-shadow:0 0 8px var(--cyan)}
@@ -73,7 +73,7 @@ h1 span{color:var(--cyan);text-shadow:0 0 6px #fff,0 0 14px var(--cyan),0 0 30px
 /* success */
 .done{align-items:center;text-align:center}
 .done .ok{font-size:clamp(16px,5vw,24px);color:var(--green);text-shadow:0 0 12px var(--green),0 0 30px var(--green);line-height:1.5}
-.done .frame{width:min(70vw,260px);aspect-ratio:1;border:6px solid var(--yellow);border-radius:16px;overflow:hidden;box-shadow:0 0 0 4px var(--pink),0 0 34px var(--yellow)}
+.done .frame{width:min(60vw,240px);aspect-ratio:3/4;border:6px solid var(--yellow);border-radius:16px;overflow:hidden;box-shadow:0 0 0 4px var(--pink),0 0 34px var(--yellow)}
 .done .frame img{width:100%;height:100%;object-fit:cover;object-position:50% 25%;display:block}
 .done .nm{font-family:'VT323',monospace;font-size:44px;line-height:1;color:var(--yellow);text-shadow:0 0 10px var(--yellow);word-break:break-word}
 </style>
@@ -97,7 +97,7 @@ h1 span{color:var(--cyan);text-shadow:0 0 6px #fff,0 0 14px var(--cyan),0 0 30px
       <div class="chg">TAP TO CHANGE PHOTO</div>
     </label>
     <input type="file" id="file" accept="image/*" hidden>
-    <p class="tip">Show your face clearly – if you win, your photo appears on the big screen!</p>
+    <p class="tip">Use an upright (portrait) photo with your face clearly visible – if you win, it appears on the big screen exactly as shown above!</p>
 
     <div class="msg" id="msg"></div>
     <button class="btn" id="go">▶ REGISTER</button>
