@@ -296,7 +296,7 @@ select.in option,.csel option{background:#05010f;color:#39ff14}
   const PIN_KEY = 'smklundu.pin';   // the password is only kept for this browser tab (forgotten when the tab is closed)
   try { const c = JSON.parse(localStorage.getItem(CFG_KEY)); if (c && !API_URL && c.url) cfg.url = c.url; } catch(e){}
   try { cfg.pin = sessionStorage.getItem(PIN_KEY) || ''; } catch(e){}
-  let seq = 0, applied = 0;
+  let seq = 0, applied = 0, backendOld = false;
   function dropPin(){ cfg.pin = ''; try { sessionStorage.removeItem(PIN_KEY); } catch(e){} }
 
   // local preferences only (sound / music) – names & winners live in Google Sheet
@@ -345,6 +345,7 @@ select.in option,.csel option{background:#05010f;color:#39ff14}
   function applyState(j){
     if (j._seq && j._seq < applied) return;          // an older reply that arrived late – ignore it
     if (j._seq) applied = j._seq;
+    backendOld = !j.v;                               // an old Google script does not send a version
     names = j.names || []; winners = j.winners || [];
     if (unsaved && !winners.some(w => w.id === unsaved.id)) winners.push(unsaved);
     online = true; lastSync = new Date();
@@ -363,11 +364,32 @@ select.in option,.csel option{background:#05010f;color:#39ff14}
   const refresh = () => (spinning || !cfg.url || !cfg.pin) ? Promise.resolve() : call('state').then(() => updateStart(false)).catch(()=>{});
 
   /* ---------- live view (live.html on the projector) ---------- */
+  const LEAD_MS = 3000;     // 3-2-1 countdown before the reels start. The live screen starts at the same moment. Set 0 for no countdown.
+  // clock: how far this device's clock is from Google's server clock (best of the last 8 measurements)
+  const clk = { s: [], off: 0,
+    add(t0, t1, now){ this.s.push({ rtt: t1 - t0, off: now - (t0 + t1) / 2 }); if (this.s.length > 8) this.s.shift();
+                      this.off = this.s.reduce((a, b) => b.rtt < a.rtt ? b : a).off; },
+    now(){ return Date.now() + this.off; } };
   function pushLive(ev){
     if (!cfg.url || !cfg.pin) return;
     ev = Object.assign({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), phase: 'idle',
                          left: pool().length, hall: winners.map(w => w.name) }, ev);
-    api('liveSet', { event: ev }).catch(() => {});          // never blocks or breaks the draw
+    const t0 = Date.now();
+    api('liveSet', { event: ev }).then(j => { if (j.now) clk.add(t0, Date.now(), j.now); }, () => {});   // never blocks or breaks the draw
+  }
+  function syncClock(){                                   // a few quick pings after login so the clock offset is accurate
+    const quiet = () => !spinning && !$('win').classList.contains('open');     // never overwrite a spin that has already started
+    pushLive({ phase: 'idle' });
+    setTimeout(() => { if (quiet()) pushLive({ phase: 'idle' }); }, 1200);
+    setTimeout(() => { if (quiet()) pushLive({ phase: 'idle' }); }, 2400);
+  }
+  function countdown(ms, go){
+    if (ms <= 0){ go(); return; }
+    for (let k = 3; k >= 1; k--){
+      const at = ms - k * 1000;
+      if (at >= 0) setTimeout(() => { label.textContent = 'GET READY...  ' + k; tone(880, .12); }, at);
+    }
+    setTimeout(go, ms);
   }
 
   /* ---------- sound effects ---------- */
@@ -548,7 +570,8 @@ select.in option,.csel option{background:#05010f;color:#39ff14}
     startBtn.disabled = !left;
     const elig = names.filter(isElig).length;
     startBtn.textContent = !names.length ? 'ADD NAMES FIRST' : !elig ? 'NO ELIGIBLE NAMES' : !left ? 'GAME OVER' : (winners.length ? '▶ Pull Again' : '▶ Pull the Lever');
-    if (resetLabel) label.textContent = !names.length ? 'NO NAMES · OPEN ⚙ NAMES' : !elig ? 'NO GURU/AKP IN THE LIST · OPEN ⚙ NAMES' : !left ? 'GAME OVER · ALL NAMES DRAWN' : 'PLAYER 1 READY';
+    if (backendOld) label.textContent = '⚠ GOOGLE SCRIPT IS OLD – REDEPLOY Code.gs AS A NEW VERSION';
+    else if (resetLabel) label.textContent = !names.length ? 'NO NAMES · OPEN ⚙ NAMES' : !elig ? 'NO GURU/AKP IN THE LIST · OPEN ⚙ NAMES' : !left ? 'GAME OVER · ALL NAMES DRAWN' : 'PLAYER 1 READY';
   }
   function render(){
     $('left').textContent = pool().length;
@@ -584,8 +607,8 @@ select.in option,.csel option{background:#05010f;color:#39ff14}
     const p = pool();
     if (!p.length){ updateStart(true); return; }
     spinning = true; startBtn.disabled = true; startBtn.textContent = 'SPINNING...';
-    machine.classList.remove('jackpot'); machine.classList.add('spinning');
-    label.textContent = 'GOOD LUCK!'; coin(); pullLever(); Music.setIntensity(1);
+    machine.classList.remove('jackpot');
+    label.textContent = LEAD_MS ? 'GET READY...' : 'GOOD LUCK!'; if (LEAD_MS) tone(660, .15);
 
     const win = p[rnd(p.length)];                                   // fair secure pick, decided up-front
     // fetch the winner's picture while the reels spin (admin-only request; the Drive file stays private)
@@ -604,17 +627,22 @@ select.in option,.csel option{background:#05010f;color:#39ff14}
     items.push(pn[rnd(pn.length)]);
     const W = items.length - 2;
     setItems(mainReel, items); place(mainReel, 0);
-    pushLive({ phase: 'spin', reel: items.slice(2), W: W, D: D, winner: { id: win.id, name: win.name, hasPhoto: !!win.photo }, left: p.length });
-    animate(mainReel, 0, W - 1, D, () => tick(), () => finish(win, W, saving, photoP));
-
-    symReels.forEach((r, j) => {
-      const cur = r.items[1] || IDLE_SYMS[j];
-      const its = ['', cur]; const M = 24 + j*8 + rnd(5);
-      for (let i=0;i<M;i++) its.push(SYMS[rnd(SYMS.length)]);
-      its.push('7'); its.push(SYMS[rnd(SYMS.length)]);
-      setItems(r, its); place(r, 0);
-      animate(r, 0, its.length - 3, D - 1700 + j*600, null, () => clunk());
-    });
+    // tell the live screen when the spin will start (server time), then start here at the same moment
+    pushLive({ phase: 'spin', reel: items.slice(2), W: W, D: D, winner: { id: win.id, name: win.name, hasPhoto: !!win.photo }, left: p.length,
+               startAt: clk.now() + LEAD_MS });
+    const begin = () => {
+      machine.classList.add('spinning'); label.textContent = 'GOOD LUCK!'; coin(); pullLever(); Music.setIntensity(1);
+      animate(mainReel, 0, W - 1, D, () => tick(), () => finish(win, W, saving, photoP));
+      symReels.forEach((r, j) => {
+        const cur = r.items[1] || IDLE_SYMS[j];
+        const its = ['', cur]; const M = 24 + j*8 + rnd(5);
+        for (let i=0;i<M;i++) its.push(SYMS[rnd(SYMS.length)]);
+        its.push('7'); its.push(SYMS[rnd(SYMS.length)]);
+        setItems(r, its); place(r, 0);
+        animate(r, 0, its.length - 3, D - 1700 + j*600, null, () => clunk());
+      });
+    };
+    countdown(LEAD_MS, begin);
   }
 
   function initials(n){ return String(n).split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?'; }
@@ -784,7 +812,7 @@ select.in option,.csel option{background:#05010f;color:#39ff14}
     try {
       await call('state');
       try { if (!API_URL) localStorage.setItem(CFG_KEY, JSON.stringify({ url: url })); sessionStorage.setItem(PIN_KEY, pin); } catch(e){}
-      $('conn').classList.remove('open'); idle(); pushLive({ phase: 'idle' });
+      $('conn').classList.remove('open'); idle(); syncClock();
     } catch(e){
       if (e.code === 'WRONG_PIN' || e.code === 'LOCKED') return;     // call() already showed the message
       $('cmsg').textContent = '⚠ CAN\'T REACH GOOGLE SHEET – CHECK INTERNET';
@@ -811,7 +839,7 @@ select.in option,.csel option{background:#05010f;color:#39ff14}
     render(); setSync();
     if (!cfg.url || !cfg.pin){ label.textContent = 'LOCKED · ADMIN ONLY'; openConn(cfg.url ? 'ADMIN ONLY – ENTER PASSWORD' : 'ENTER GOOGLE SHEET URL + PASSWORD'); return; }
     label.textContent = 'CONNECTING TO GOOGLE SHEET...';
-    try { await call('state'); idle(); pushLive({ phase: 'idle' }); }
+    try { await call('state'); idle(); syncClock(); }
     catch(e){ label.textContent = e.code === 'WRONG_PIN' ? '⚠ WRONG PIN' : '⚠ CAN\'T REACH GOOGLE SHEET · TAP ☁ TO RETRY'; }
   }
   layout(); boot();
