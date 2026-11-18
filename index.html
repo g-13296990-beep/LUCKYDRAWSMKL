@@ -47,6 +47,9 @@ h1 span{color:var(--cyan);text-shadow:0 0 6px #fff,0 0 14px var(--cyan),0 0 30px
   font-family:'VT323',monospace;font-size:30px;padding:8px 12px;outline:none;text-shadow:0 0 6px var(--green)}
 .in:focus{box-shadow:0 0 16px var(--green)}
 .in::placeholder{color:#3b7a33;text-shadow:none}
+select.in{-webkit-appearance:none;appearance:none;cursor:pointer;font-size:26px;padding:10px 46px 10px 12px;
+  background:#05010f url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='22' height='14'><path d='M2 2l9 9 9-9' fill='none' stroke='%2339ff14' stroke-width='3'/></svg>") no-repeat right 14px center}
+select.in option{background:#05010f;color:#39ff14}
 .hp{position:absolute;left:-9999px;top:auto;width:1px;height:1px;opacity:0}
 
 .pick{display:block;position:relative;width:min(100%,270px);aspect-ratio:3/4;margin:0 auto;border:4px dashed var(--cyan);border-radius:16px;
@@ -83,31 +86,39 @@ h1 span{color:var(--cyan);text-shadow:0 0 6px #fff,0 0 14px var(--cyan),0 0 30px
 
 <main>
   <h1>SMK LUNDU <span>ANNUAL DINNER</span></h1>
-  <div class="sub">★ ATTENDANCE REGISTRATION ★<br>REGISTER TO ENTER THE LUCKY DRAW</div>
+  <div class="sub">★ ATTENDANCE REGISTRATION ★<br>PLEASE FILL IN YOUR DETAILS</div>
 
   <section class="card" id="formCard">
     <div class="step"><b>1</b> YOUR NAME</div>
     <input class="in" id="name" type="text" maxlength="80" placeholder="Full name" autocomplete="name" autocapitalize="words" spellcheck="false">
     <input class="hp" id="hp" type="text" tabindex="-1" autocomplete="off" aria-hidden="true">
 
-    <div class="step"><b>2</b> YOUR PHOTO</div>
+    <div class="step"><b>2</b> I AM</div>
+    <select class="in" id="cat">
+      <option value="">— SELECT —</option>
+      <option value="Guru/AKP SMK Lundu">Guru/AKP SMK Lundu</option>
+      <option value="Jemputan">Jemputan</option>
+      <option value="Pasangan Guru/AKP SMK Lundu">Pasangan Guru/AKP SMK Lundu</option>
+    </select>
+
+    <div class="step"><b>3</b> YOUR PHOTO</div>
     <label class="pick" id="pick" for="file">
       <div class="ph">📷<small>TAP TO TAKE OR CHOOSE A PHOTO</small></div>
       <img id="prev" alt="Your photo">
       <div class="chg">TAP TO CHANGE PHOTO</div>
     </label>
     <input type="file" id="file" accept="image/*" hidden>
-    <p class="tip">Use an upright (portrait) photo with your face clearly visible – if you win, it appears on the big screen exactly as shown above!</p>
+    <p class="tip">Please use an upright (portrait) photo with your face clearly visible, as shown above.</p>
 
     <div class="msg" id="msg"></div>
     <button class="btn" id="go">▶ REGISTER</button>
   </section>
 
   <section class="card done" id="doneCard" hidden>
-    <div class="ok">✔ YOU ARE REGISTERED!</div>
+    <div class="ok">✔ THANK YOU!<br>YOU ARE REGISTERED</div>
     <div class="frame"><img id="doneImg" alt=""></div>
     <div class="nm" id="doneName"></div>
-    <p class="tip">You are in the Lucky Draw. Good luck! 🍀</p>
+    <p class="tip">Enjoy the dinner! 🎉</p>
     <button class="btn alt" id="again">REGISTER ANOTHER PERSON</button>
   </section>
 </main>
@@ -126,6 +137,7 @@ h1 span{color:var(--cyan);text-shadow:0 0 6px #fff,0 0 14px var(--cyan),0 0 30px
     NAME_REQUIRED: 'Please type your full name.',
     BAD_IMAGE: 'That photo could not be used. Please choose another one.',
     ALREADY_REGISTERED: 'This name is already registered. If you did it earlier, you are all set! If you are a different person with the same name, add your middle initial.',
+    BAD_CATEGORY: 'Please choose who you are from the list.',
     CLOSED: 'Registration is closed.',
     FULL: 'Registration is full. Please see the organiser.'
   };
@@ -166,6 +178,7 @@ h1 span{color:var(--cyan);text-shadow:0 0 6px #fff,0 0 14px var(--cyan),0 0 30px
     if (sending) return;
     const name = $('name').value.replace(/\s+/g, ' ').trim();
     if (name.length < 2){ msg('Please type your full name.', true); $('name').focus(); return; }
+    if (!$('cat').value){ msg('Please choose who you are.', true); $('cat').focus(); return; }
     if (!photo){ msg('Please add your photo.', true); return; }
 
     sending = true; $('go').disabled = true; $('go').textContent = 'UPLOADING...'; msg('Uploading – please wait, do not close this page...');
@@ -174,7 +187,7 @@ h1 span{color:var(--cyan);text-shadow:0 0 6px #fff,0 0 14px var(--cyan),0 0 30px
       const r = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'register', name: name, image: photo, mime: 'image/jpeg', hp: $('hp').value }),
+        body: JSON.stringify({ action: 'register', name: name, category: $('cat').value, image: photo, mime: 'image/jpeg', hp: $('hp').value }),
         signal: ctl.signal
       });
       const j = await r.json();
@@ -192,7 +205,7 @@ h1 span{color:var(--cyan);text-shadow:0 0 6px #fff,0 0 14px var(--cyan),0 0 30px
   });
 
   $('again').addEventListener('click', () => {
-    photo = null; previewUrl = ''; $('name').value = ''; $('file').value = ''; $('prev').removeAttribute('src');
+    photo = null; previewUrl = ''; $('name').value = ''; $('cat').value = ''; $('file').value = ''; $('prev').removeAttribute('src');
     $('pick').classList.remove('has'); msg('');
     $('doneCard').hidden = true; $('formCard').hidden = false; window.scrollTo(0, 0);
   });
