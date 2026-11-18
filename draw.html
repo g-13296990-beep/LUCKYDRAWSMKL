@@ -157,6 +157,11 @@ textarea{resize:none}
 .nrow .i{color:var(--pink);min-width:2.2em}
 .nrow .nm{flex:1;color:var(--green);text-shadow:0 0 6px var(--green);word-break:break-word}
 .nrow.won .nm{color:var(--yellow);text-shadow:0 0 6px var(--yellow)}
+.nrow.out .nm{opacity:.5}
+.csel{font-family:'VT323',monospace;font-size:clamp(14px,1.7vw,22px);max-width:46%;background:#05010f;color:var(--cyan);border:2px solid var(--cyan);border-radius:8px;padding:.4vh .5vw}
+.csel.none{border-color:var(--red);color:#ff6b8f}
+select.in{cursor:pointer}
+select.in option,.csel option{background:#05010f;color:#39ff14}
 .del{font-family:'Press Start 2P',monospace;font-size:clamp(8px,1.1vw,12px);padding:1.1vh .9vw;border-radius:8px;border:2px solid var(--red);background:transparent;color:var(--red);min-width:6.5em}
 .del.sure{background:var(--red);color:#fff}
 .mmsg{min-height:1.2em}
@@ -220,6 +225,7 @@ textarea{resize:none}
         <button class="btn tool" id="snd">🔊 ON</button>
         <button class="btn tool" id="mus">🎵 ON</button>
         <button class="btn tool" id="mymus">🎧 MY MUSIC</button>
+        <button class="btn tool" id="liveBtn">📺 LIVE</button>
         <button class="btn tool" id="fs">⛶</button>
         <input type="file" id="musfile" accept="audio/*" hidden>
       </div>
@@ -244,8 +250,9 @@ textarea{resize:none}
   <div class="box big">
     <h3>⚙ MANAGE NAMES</h3>
     <p id="cnt"></p>
+    <select class="in" id="addCat"></select>
     <div class="addrow">
-      <textarea id="addTa" spellcheck="false" autocapitalize="words" placeholder="Extra guests with no photo (one name per line)"></textarea>
+      <textarea id="addTa" spellcheck="false" autocapitalize="words" placeholder="Add people with no photo (one name per line) – category chosen above"></textarea>
       <button class="btn mbtn ok" id="addBtn">+ ADD</button>
     </div>
     <input class="in" id="filter" placeholder="Search name..." autocomplete="off">
@@ -300,7 +307,10 @@ textarea{resize:none}
   // data from Google Sheet
   let names = [], winners = [], unsaved = null, lastWin = null;
   const wonIds = () => new Set(winners.map(w => w.id));
-  const pool = () => { const s = wonIds(); return names.filter(n => !s.has(n.id)); };
+  const CATS = ['Guru/AKP SMK Lundu', 'Jemputan', 'Pasangan Guru/AKP SMK Lundu'];
+  const ELIGIBLE = CATS[0];                                   // only this category takes part in the draw
+  const isElig = n => n.cat === ELIGIBLE;
+  const pool = () => { const s = wonIds(); return names.filter(n => isElig(n) && !s.has(n.id)); };
 
   function rnd(n){ const max = Math.floor(0xFFFFFFFF / n) * n, a = new Uint32Array(1);
     do { crypto.getRandomValues(a); } while (a[0] >= max); return a[0] % n; }
@@ -351,6 +361,14 @@ textarea{resize:none}
     } finally { busy--; setSync(); }
   }
   const refresh = () => (spinning || !cfg.url || !cfg.pin) ? Promise.resolve() : call('state').then(() => updateStart(false)).catch(()=>{});
+
+  /* ---------- live view (live.html on the projector) ---------- */
+  function pushLive(ev){
+    if (!cfg.url || !cfg.pin) return;
+    ev = Object.assign({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), phase: 'idle',
+                         left: pool().length, hall: winners.map(w => w.name) }, ev);
+    api('liveSet', { event: ev }).catch(() => {});          // never blocks or breaks the draw
+  }
 
   /* ---------- sound effects ---------- */
   let ac;
@@ -528,8 +546,9 @@ textarea{resize:none}
     if (spinning) return;
     const left = pool().length;
     startBtn.disabled = !left;
-    startBtn.textContent = !names.length ? 'ADD NAMES FIRST' : !left ? 'GAME OVER' : (winners.length ? '▶ Pull Again' : '▶ Pull the Lever');
-    if (resetLabel) label.textContent = !names.length ? 'NO NAMES · OPEN ⚙ NAMES' : !left ? 'GAME OVER · ALL NAMES DRAWN' : 'PLAYER 1 READY';
+    const elig = names.filter(isElig).length;
+    startBtn.textContent = !names.length ? 'ADD NAMES FIRST' : !elig ? 'NO ELIGIBLE NAMES' : !left ? 'GAME OVER' : (winners.length ? '▶ Pull Again' : '▶ Pull the Lever');
+    if (resetLabel) label.textContent = !names.length ? 'NO NAMES · OPEN ⚙ NAMES' : !elig ? 'NO GURU/AKP IN THE LIST · OPEN ⚙ NAMES' : !left ? 'GAME OVER · ALL NAMES DRAWN' : 'PLAYER 1 READY';
   }
   function render(){
     $('left').textContent = pool().length;
@@ -585,6 +604,7 @@ textarea{resize:none}
     items.push(pn[rnd(pn.length)]);
     const W = items.length - 2;
     setItems(mainReel, items); place(mainReel, 0);
+    pushLive({ phase: 'spin', reel: items.slice(2), W: W, D: D, winner: { id: win.id, name: win.name, hasPhoto: !!win.photo }, left: p.length });
     animate(mainReel, 0, W - 1, D, () => tick(), () => finish(win, W, saving, photoP));
 
     symReels.forEach((r, j) => {
@@ -649,6 +669,7 @@ textarea{resize:none}
     $('win').classList.remove('open'); machine.classList.remove('jackpot');
     setItems(mainReel, ['', shown, '']); place(mainReel, 0);
     if (!spinning) updateStart(true);
+    pushLive({ phase: 'idle' });
   }
   $('win').addEventListener('click', closeWin);
   $('absent').addEventListener('click', async e => {
@@ -658,7 +679,7 @@ textarea{resize:none}
     if (unsaved && unsaved.id === id) unsaved = null;
     $('win').classList.remove('open'); machine.classList.remove('jackpot');
     shown = '? ? ?'; showIdle(); label.textContent = 'REMOVING ABSENT WINNER...';
-    try { await call('absent', { id }); label.textContent = 'REDRAW! PULL THE LEVER'; }
+    try { await call('absent', { id }); pushLive({ phase: 'idle' }); label.textContent = 'REDRAW! PULL THE LEVER'; }
     catch(err){ label.textContent = '⚠ COULD NOT UPDATE SHEET – OPEN ⚙ NAMES'; }
     updateStart(false);
   });
@@ -696,6 +717,7 @@ textarea{resize:none}
   const modal = $('modal'), listEl = $('nameList');
   const mmsg = (t, bad) => { const m = $('mmsg'); m.textContent = t || ''; m.style.color = bad ? '#ff6b8f' : '#cfc6f5'; };
   const errText = e => e.code === 'WRONG_PIN' ? 'WRONG PIN' : (e.code ? 'ERROR: ' + e.code : 'NO CONNECTION – TRY AGAIN');
+  CATS.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; $('addCat').appendChild(o); });
 
   function renderManage(){
     if (!modal.classList.contains('open')) return;
@@ -703,10 +725,13 @@ textarea{resize:none}
     listEl.innerHTML = '';
     names.forEach((n, i) => {
       if (q && !n.name.toLowerCase().includes(q)) return;
-      const row = document.createElement('div'); row.className = 'nrow' + (won.has(n.id) ? ' won' : '');
+      const row = document.createElement('div'); row.className = 'nrow' + (won.has(n.id) ? ' won' : '') + (isElig(n) ? '' : ' out');
       const idx = document.createElement('span'); idx.className = 'i'; idx.textContent = String(i+1).padStart(2,'0');
       const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = n.name + (won.has(n.id) ? '  ★ WON' : '');
       const pho = document.createElement('span'); pho.className = 'ph'; pho.textContent = n.photo ? '📷' : '–'; pho.title = n.photo ? 'Has photo' : 'No photo';
+      const cs = document.createElement('select'); cs.className = 'csel' + (n.cat ? '' : ' none');
+      (n.cat ? CATS : [''].concat(CATS)).forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c || '— CATEGORY? —'; if (c === (n.cat || '')) o.selected = true; cs.appendChild(o); });
+      cs.onchange = async () => { mmsg('Saving...'); try { await call('setCategory', { id: n.id, cat: cs.value }); mmsg('Saved ✔'); updateStart(true); } catch(e){ mmsg(errText(e), true); renderManage(); } };
       const del = document.createElement('button'); del.className = 'btn del'; del.textContent = 'DELETE';
       del.onclick = async () => {
         if (!arm(del, 'SURE?')) return;
@@ -714,26 +739,26 @@ textarea{resize:none}
         try { await call('deleteName', { id: n.id }); mmsg('Deleted ' + n.name); updateStart(true); }
         catch(e){ mmsg(errText(e), true); }
       };
-      row.append(idx, nm, pho, del); listEl.appendChild(row);
+      row.append(idx, nm, pho, cs, del); listEl.appendChild(row);
     });
     listEl.scrollTop = top;
-    $('cnt').textContent = names.length + ' NAMES · ' + winners.length + ' WON · ' + pool().length + ' LEFT';
+    $('cnt').textContent = names.length + ' REGISTERED · ' + names.filter(isElig).length + ' IN DRAW · ' + winners.length + ' WON · ' + pool().length + ' LEFT';
   }
   $('gear').onclick = () => { if (spinning) return; modal.classList.add('open'); mmsg(''); renderManage(); };
-  $('close').onclick = () => { modal.classList.remove('open'); if (!spinning){ shown = shown; updateStart(true); } };
+  $('close').onclick = () => { modal.classList.remove('open'); if (!spinning){ shown = shown; updateStart(true); pushLive({ phase: 'idle' }); } };
   $('filter').addEventListener('input', renderManage);
   $('addBtn').onclick = async () => {
     const arr = $('addTa').value.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
     if (!arr.length) return;
     mmsg('Adding...');
-    try { await call('addNames', { names: arr }); $('addTa').value = ''; mmsg('Added ' + arr.length + ' name(s) ✔'); listEl.scrollTop = listEl.scrollHeight; }
+    try { await call('addNames', { names: arr, cat: $('addCat').value }); $('addTa').value = ''; mmsg('Added ' + arr.length + ' name(s) ✔'); listEl.scrollTop = listEl.scrollHeight; }
     catch(e){ mmsg(errText(e), true); }
   };
   $('syncBtn').onclick = async () => { mmsg('Refreshing...'); try { await call('state'); mmsg('Up to date ✔'); } catch(e){ mmsg(errText(e), true); } };
   $('reset').onclick = async () => {
     if (!confirm('Clear ALL winners and start the draw again?\n(The names stay in the list.)')) return;
     mmsg('Resetting...');
-    try { await call('resetWinners'); unsaved = null; shown = '? ? ?'; showIdle(); mmsg('All winners cleared ✔'); updateStart(true); setSync(); }
+    try { await call('resetWinners'); unsaved = null; pushLive({ phase: 'idle' }); shown = '? ? ?'; showIdle(); mmsg('All winners cleared ✔'); updateStart(true); setSync(); }
     catch(e){ mmsg(errText(e), true); }
   };
   $('connBtn').onclick = () => logout();
@@ -759,7 +784,7 @@ textarea{resize:none}
     try {
       await call('state');
       try { if (!API_URL) localStorage.setItem(CFG_KEY, JSON.stringify({ url: url })); sessionStorage.setItem(PIN_KEY, pin); } catch(e){}
-      $('conn').classList.remove('open'); idle();
+      $('conn').classList.remove('open'); idle(); pushLive({ phase: 'idle' });
     } catch(e){
       if (e.code === 'WRONG_PIN' || e.code === 'LOCKED') return;     // call() already showed the message
       $('cmsg').textContent = '⚠ CAN\'T REACH GOOGLE SHEET – CHECK INTERNET';
@@ -769,6 +794,7 @@ textarea{resize:none}
 
   /* ---------- sound / music / fullscreen ---------- */
   $('snd').onclick = () => { state.sound = !state.sound; savePrefs(); render(); if (state.sound) coin(); };
+  $('liveBtn').onclick = () => { window.open('live.html', '_blank'); };
   $('fs').onclick = () => { const d = document, e = d.documentElement;
     if (!d.fullscreenElement) (e.requestFullscreen || e.webkitRequestFullscreen || function(){}).call(e);
     else (d.exitFullscreen || d.webkitExitFullscreen || function(){}).call(d); };
@@ -785,7 +811,7 @@ textarea{resize:none}
     render(); setSync();
     if (!cfg.url || !cfg.pin){ label.textContent = 'LOCKED · ADMIN ONLY'; openConn(cfg.url ? 'ADMIN ONLY – ENTER PASSWORD' : 'ENTER GOOGLE SHEET URL + PASSWORD'); return; }
     label.textContent = 'CONNECTING TO GOOGLE SHEET...';
-    try { await call('state'); idle(); }
+    try { await call('state'); idle(); pushLive({ phase: 'idle' }); }
     catch(e){ label.textContent = e.code === 'WRONG_PIN' ? '⚠ WRONG PIN' : '⚠ CAN\'T REACH GOOGLE SHEET · TAP ☁ TO RETRY'; }
   }
   layout(); boot();
