@@ -386,7 +386,7 @@ canvas#fx{position:fixed;inset:0;z-index:80;pointer-events:none}
   /* ---------- screen state ---------- */
   const label = $('label'), machine = $('machine'), lever = $('lever');
   let left = null, prizes = null, hall = [];
-  const totalOf = ev => ev.total != null ? ev.total : ev.left;          // all registered people
+  const totalOf = ev => ev.total != null ? Math.max(0, ev.total - (ev.hall || []).length) : ev.left;   // registered minus already drawn (before this winner)          // all registered people
   const prizeAfter = ev => ev.prizes == null ? null : Math.max(0, ev.prizes - 1);   // prizes left once this winner is shown
   function render(){
     $('left').textContent = left == null ? '–' : left;
@@ -473,7 +473,7 @@ canvas#fx{position:fixed;inset:0;z-index:80;pointer-events:none}
     machine.classList.remove('spinning'); machine.classList.add('jackpot');
     label.textContent = '★ ★ ★  JACKPOT  ★ ★ ★';
     Music.setIntensity(0); Music.duck(5500); fanfare(); confetti();
-    left = totalOf(ev); prizes = prizeAfter(ev); hall = (ev.hall || []).concat(ev.winner.name); render();
+    left = Math.max(0, totalOf(ev) - 1); prizes = prizeAfter(ev); hall = (ev.hall || []).concat(ev.winner.name); render();
     setTimeout(() => { if (my === curSpin) openOverlay(ev.winner, photoP); }, after);
   }
 
@@ -483,7 +483,7 @@ canvas#fx{position:fixed;inset:0;z-index:80;pointer-events:none}
     setItems(mainReel, ['', shown, '']); place(mainReel, 0);
     symReels.forEach(r => { setItems(r, ['', '7', '']); place(r, 0); });
     machine.classList.add('jackpot'); label.textContent = '★ ★ ★  JACKPOT  ★ ★ ★';
-    left = totalOf(ev); prizes = prizeAfter(ev); hall = (ev.hall || []).concat(ev.winner.name); render();
+    left = Math.max(0, totalOf(ev) - 1); prizes = prizeAfter(ev); hall = (ev.hall || []).concat(ev.winner.name); render();
     openOverlay(ev.winner, photoFor(ev));
   }
 
