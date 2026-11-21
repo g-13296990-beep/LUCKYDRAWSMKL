@@ -589,7 +589,7 @@ select.in option,.csel option{background:#05010f;color:#39ff14}
     else if (resetLabel) label.textContent = !names.length ? 'NO NAMES · OPEN ⚙ NAMES' : !elig ? 'NO GURU/AKP IN THE LIST · OPEN ⚙ NAMES' : !left ? 'GAME OVER · ALL NAMES DRAWN' : pl === 0 ? 'GAME OVER · ALL PRIZES GIVEN' : 'PLAYER 1 READY';
   }
   function render(){
-    $('left').textContent = names.length;
+    $('left').textContent = Math.max(0, names.length - winners.length);   // everyone registered, minus those already drawn
     $('prizes').textContent = prizesLeft() == null ? '–' : prizesLeft();
     const ol = $('list'); ol.innerHTML = '';
     winners.forEach((w,i)=>{
